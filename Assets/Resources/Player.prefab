@@ -1243,6 +1243,9 @@ MonoBehaviour:
   SprintModifier: 2
   JumpForce: 250
   MaxHealth: 100
+  LengthOfSlide: 3
+  SlideSpeed: 0
+  SlideModifier: 1.75
   NormalCam: {fileID: 7619300657815908639}
   Ground:
     serializedVersion: 2
@@ -1282,6 +1285,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Loadout:
   - {fileID: 11400000, guid: 64b1531f0ee36574eb27e128689956d1, type: 2}
+  - {fileID: 11400000, guid: 7bdd6269bbd61f44b9667db2dc148cec, type: 2}
   WeaponParent: {fileID: 7619300657944914874}
   BulletHolePrefab: {fileID: 1000012142692022, guid: a475880e7da0e9548aa05cb7933752cd,
     type: 3}

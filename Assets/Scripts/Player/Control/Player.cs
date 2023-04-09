@@ -37,8 +37,10 @@ namespace Com.Astrocricket.BeanWars
 
         private float BaseFOV = 80f;
         private float SprintFOVModifier = 1.2f;
+        private Vector3 Origin;
 
         private Vector3 WeaponParentOrigin;
+        private Vector3 WeaponParentCurrentPosition;
 
         private int CurrentHealth;
 
@@ -61,6 +63,7 @@ namespace Com.Astrocricket.BeanWars
 
 
             BaseFOV = NormalCam.fieldOfView;
+            Origin = NormalCam.transform.localPosition;
 
             if (Camera.main)
             {
@@ -69,6 +72,7 @@ namespace Com.Astrocricket.BeanWars
 
             Rig = GetComponent<Rigidbody>();
             WeaponParentOrigin = WeaponParent.localPosition;
+            WeaponParentCurrentPosition = WeaponParentOrigin;
 
             if (photonView.IsMine)
             {
@@ -149,7 +153,7 @@ namespace Com.Astrocricket.BeanWars
             bool IsGrounded = Physics.Raycast(GroundDetector.position, Vector3.down, 0.1f, Ground);
             bool IsJumping = Jump && IsGrounded;
             bool IsSprinting = Sprint && t_Vmove > 0 && !IsJumping && IsGrounded;
-            bool IsSliding = IsSprinting && Slide;
+            bool IsSliding = IsSprinting && Slide && !Sliding;
 
             Vector3 t_Direction = Vector3.zero;
             float t_AdjustedSpeed = Speed;
@@ -159,23 +163,46 @@ namespace Com.Astrocricket.BeanWars
                 t_Direction = new Vector3(t_Hmove, 0, t_Vmove);
                 t_Direction.Normalize();
 
-
+                t_Direction = transform.TransformDirection(t_Direction);
                 
+            }
+            else
+            {
+                t_Direction = SlideDirection;
+                t_AdjustedSpeed *= SlideModifier;
+                SlideTime -= Time.deltaTime;
 
-
-                Vector3 t_TargetVelocity = transform.TransformDirection(t_Direction) * t_AdjustedSpeed * Time.deltaTime;
-                t_TargetVelocity.y = Rig.velocity.y;
-
-                Rig.velocity = t_TargetVelocity;
-
-                if (IsSliding)
+                if(SlideTime <= 0)
                 {
-                    Sliding = true;
-                    SlideDirection = transform.TransformDirection(t_Direction);
-
-                    SlideTime = LengthOfSlide;
+                    Sliding = false;
+                    WeaponParentCurrentPosition += Vector3.up * 0.5f;
                 }
 
+            }
+
+            Vector3 t_TargetVelocity = t_Direction * t_AdjustedSpeed * Time.deltaTime;
+            t_TargetVelocity.y = Rig.velocity.y;
+
+            Rig.velocity = t_TargetVelocity;
+
+            if (IsSliding)
+            {
+                Sliding = true;
+                SlideDirection = t_Direction;
+
+                SlideTime = LengthOfSlide;
+
+                WeaponParentCurrentPosition += Vector3.down * 0.5f;
+            }
+
+            if (Sliding)
+            {
+                NormalCam.fieldOfView = Mathf.Lerp(NormalCam.fieldOfView, BaseFOV * SprintFOVModifier * 0.75f, Time.deltaTime * 8f);
+
+                NormalCam.transform.localPosition = Vector3.Lerp(NormalCam.transform.localPosition, Origin + Vector3.down * 0.5f, Time.deltaTime * 6f);
+            }
+            else
+            {
                 if (IsSprinting)
                 {
                     NormalCam.fieldOfView = Mathf.Lerp(NormalCam.fieldOfView, BaseFOV * SprintFOVModifier, Time.deltaTime * 8f);
@@ -184,13 +211,14 @@ namespace Com.Astrocricket.BeanWars
                 {
                     NormalCam.fieldOfView = Mathf.Lerp(NormalCam.fieldOfView, BaseFOV, Time.deltaTime * 8f);
                 }
-            }        
-            
+
+                NormalCam.transform.localPosition = Vector3.Lerp(NormalCam.transform.localPosition, Origin, Time.deltaTime * 6f);
+            }
         }
 
         void HeadBob(float z, float Xintensity, float Yintensity)
         {
-            TargetWeaponBobPosition = WeaponParentOrigin + new Vector3(Mathf.Cos(z) * Xintensity, Mathf.Sin(z * 2) * Yintensity, 0);
+            TargetWeaponBobPosition = WeaponParentCurrentPosition + new Vector3(Mathf.Cos(z) * Xintensity, Mathf.Sin(z * 2) * Yintensity, 0);
         }
 
         void RefreshHealthBar()
